@@ -1,0 +1,16 @@
+class,crop_name,min_veg_height,veg_height,lai_max,leaf_type,veg_fractional_cover,min_stomatal_resistance,veg_inclination_distribution,width_to_height_ratio,igbp_classification
+101,Potatoes,0.1,0.6,4,1,0.6,400,0.5,1,12
+40,Rice,0.1,1,4,2,0.9,400,0.5,1,12
+103,Grass,0.1,0.3,4,2,0.9,400,0.5,1,10
+104,Cassava,0.1,1.2,4,1,0.5,400,0.5,1,12
+105,Cocoa,3,3,0,1,0.5,400,0.5,1,4
+106,Oil palm,8,8,0,2,0.6,400,1,1,4
+107,Spring barley,0.1,1,4,2,0.8,400,1,1,12
+108,Soybeans,0.1,0.7,4,1,0.7,400,0.5,1,12
+109,Rapeseed / oilseed,0.1,0.6,4,1,0.8,400,0.5,1,12
+110,Spring wheat,0.1,1,4,2,0.8,400,0.5,1,12
+111,Coffee,2.5,2.5,0,1,0.5,400,1,1,4
+112,Maize,0.1,1.7,4,2,0.8,400,0.5,1,12
+113,Rubber,10,10,0,1,0.9,400,1,1,4
+114,Winter wheat,0.1,1,4,2,0.8,400,0.5,1,12
+115,Alfafa,0.1,0.7,4,1,0.8,400,0.5,1,12
