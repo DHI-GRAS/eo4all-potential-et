@@ -295,6 +295,10 @@ def daily_meteo_params(meteo_path, variables, start_date, end_date, template_fil
     return meteo_params
 
 
+def get_files(path, glob):
+    return list(path.glob(glob))
+
+
 def download_data(connection, path, glob, overwrite=False):
     downloaded_files = []
     files = connection.listdir(str(path))
@@ -328,14 +332,7 @@ def connect_to_server(ftp_url, ftp_port, ftp_username, ftp_pass):
         return
 
 
-def main(aoi_name, date, ftp_url, ftp_port, ftp_username, ftp_pass, spatial_res="s2",
-         temporal_res="dekadal"):
-
-    # Connect to sftp server
-    connection = connect_to_server(ftp_url, ftp_port, ftp_username, ftp_pass)
-    if connection is None:
-        print("Cannot connect to server!")
-        return
+def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
 
     # Find start of dekade or month within which the date falls
     if temporal_res == "dekadal":
@@ -352,15 +349,15 @@ def main(aoi_name, date, ftp_url, ftp_port, ftp_username, ftp_pass, spatial_res=
         date_end = date
 
     # Download VI data
-    print("Downloading VI data...")
-    path = Path(f"/EO4ALL/{aoi_name}/{date_start:%Y%m%d}/10m/Vegetation-Indices")
-    ndvi_file = download_data(connection, path, "_NDVI_")[0]
-    evi_file = download_data(connection, path, "_EVI_")[0]
-    refl_b2_file = download_data(connection, path, "_B02_")[0]
-    refl_b4_file = download_data(connection, path, "_B04_")[0]
-    refl_b8_file = download_data(connection, path, "_B08_")[0]
-    refl_b11_file = download_data(connection, path, "_B11_")[0]
-    refl_b12_file = download_data(connection, path, "_B12_")[0]
+    print("Accessing VI data...")
+    path = Path(f"/data/outputs/{aoi_name}/{date_start:%Y%m%d}/10m/Vegetation-Indices")
+    ndvi_file = get_files(path, "*_NDVI_*")[0]
+    evi_file = get_files(path, "*_EVI_*")[0]
+    refl_b2_file = get_files(path, "*_B02_*")[0]
+    refl_b4_file = get_files(path, "*_B04_*")[0]
+    refl_b8_file = get_files(path, "*_B08_*")[0]
+    refl_b11_file = get_files(path, "*_B11_*")[0]
+    refl_b12_file = get_files(path, "*_B12_*")[0]
 
     print("Calculating biophysical parameters...")
     # Calculate LAI, emissivity and albedo
@@ -381,14 +378,14 @@ def main(aoi_name, date, ftp_url, ftp_port, ftp_username, ftp_pass, spatial_res=
 
     print("Setting landcover parameters...")
     # Get parameters based on crop classification
-    landcover_file = download_data(connection, Path("/EO4ALL/Ancillaries/worldcover_data"), "_WorldCover_")[0]
+    landcover_file = get_files(Path("/data/_ancillaries/ESA-Worldcover/Indonesia/"), "WorldCover_*")[0]
     lut_file = Path("crop_coefficients_lut.csv")
     lc_maps = create_landcover_based_maps(landcover_file, lut_file, lc_parameters, ndvi_file, lai)
 
-    print("Downloading meteorological data...")
+    print("Accessing meteorological data...")
     # Download meteorological data
-    path = Path(f"/EO4ALL/Indonesia/{date_start:%Y}/30km/Climate-Indices/")
-    era5_file = download_data(connection, path, f"_{date_start:%Y}_")[0]
+    path = Path(f"/data/outputs/Indonesia/{date_start:%Y}/30km/Climate-Indices/")
+    era5_file = get_files(path, f"*_{date_start:%Y}_*")[0]
 
     count = 0
     ta = np.zeros(lai.shape)
@@ -446,7 +443,10 @@ def main(aoi_name, date, ftp_url, ftp_port, ftp_username, ftp_pass, spatial_res=
                                   10,
                                   valid_pixels)
 
-    out_file = f"EO4ALL_Potential-Evapotranspiration_ETp_S2-10m_{aoi_name}_{date_start:%Y%m%d}_{date_end:%Y%m%d}_{dt.datetime.now():%Y%m%d%H%M%S}.tif"
+    out_folder = Path(f"/data/outputs/{aoi_name}/{date_start:%Y%m%d}/10m/Potential-Evapotranspiration")
+    out_folder.mkdir(parents=True, exist_ok=True)
+    out_file = out_folder / f"Potential-Evapotranspiration_ETp_S2-10m_{aoi_name}_{date_start:%Y%m%d}_{date_end:%Y%m%d}_{dt.datetime.now():%Y%m%d%H%M%S}.tif"
+    print("Saving output file...")
     with rasterio.open(ndvi_file, "r") as template:
         meta = template.meta
         meta.update({"driver": "COG"})
@@ -456,26 +456,7 @@ def main(aoi_name, date, ftp_url, ftp_port, ftp_username, ftp_pass, spatial_res=
             et_p[~valid_pixels] = no_data
             fp.write(et_p, 1)
 
-    # Upload to FTP
-    print("Uploading to FTP...")
-    remote_path = Path(f"/EO4ALL/{aoi_name}/{date_start:%Y%m%d}/10m/Potential-Evapotranspiration")
-    connection = connect_to_server(ftp_url, ftp_port, ftp_username, ftp_pass)
-    if connection is None:
-        print("Cannot connect to server!")
-        return
-    upload_data(connection, str(remote_path), out_file)
-
-    # remove downloaded and produced files
-    Path(ndvi_file).unlink()
-    Path(evi_file).unlink()
-    Path(refl_b2_file).unlink()
-    Path(refl_b4_file).unlink()
-    Path(refl_b8_file).unlink()
-    Path(refl_b11_file).unlink()
-    Path(refl_b12_file).unlink()
-    Path(out_file).unlink()
-
-    return str(remote_path)
+    return str(out_file)
 
 
 @click.command()
@@ -486,13 +467,8 @@ def run(json_data):
     date = inputs["date"]
     spatial_res = inputs["spatial_res"]
     temporal_res = inputs["temporal_res"]
-    ftp_url = inputs["ftp_url"]
-    ftp_port = inputs["ftp_port"]
-    ftp_username = inputs["ftp_username"]
-    ftp_pass = inputs["ftp_pass"]
 
-    output_path = main(aoi_name, date, ftp_url, ftp_port, ftp_username, ftp_pass, spatial_res="s2",
-                       temporal_res="dekadal")
+    output_path = main(aoi_name, date, spatial_res="s2", temporal_res="dekadal")
 
     out = interface.Outputs().dumps({"output_path": output_path})
     return out

@@ -1,8 +1,6 @@
-FROM continuumio/miniconda3:latest
+FROM condaforge/mambaforge:23.3.1-1
 
-RUN conda config --add channels conda-forge
-RUN conda config --set channel_priority strict
-RUN conda install -c conda-forge gdal
+RUN mamba install -c conda-forge gdal
 ENV PROJ_LIB="/opt/conda/share/proj"
 
 RUN apt-get update -y && \
