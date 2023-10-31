@@ -299,39 +299,6 @@ def get_files(path, glob):
     return list(path.glob(glob))
 
 
-def download_data(connection, path, glob, overwrite=False):
-    downloaded_files = []
-    files = connection.listdir(str(path))
-    for file in files:
-        if re.search(glob, file):
-            if overwrite or not Path(file).exists():
-                connection.get(str(path / file))
-            downloaded_files.append(Path(file))
-    return downloaded_files
-
-
-def upload_data(connection, path, file):
-    try:
-        connection.put(file, f"{path}/{file}")
-    except IOError:
-        connection.mkdir(path)  # Create remote_path
-        connection.put(file, f"{path}/{file}")
-
-def connect_to_server(ftp_url, ftp_port, ftp_username, ftp_pass):
-    try:
-        cnopts = pysftp.CnOpts()
-        cnopts.hostkeys = None
-        connection = pysftp.Connection(host=ftp_url,
-                                       port=ftp_port,
-                                       username=ftp_username,
-                                       password=ftp_pass,
-                                       cnopts=cnopts)
-        return connection
-    except pysftp.ConnectionException:
-        print("Could not connect to data source")
-        return
-
-
 def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
 
     # Find start of dekade or month within which the date falls
