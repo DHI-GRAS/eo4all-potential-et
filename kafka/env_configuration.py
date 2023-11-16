@@ -3,7 +3,7 @@ import os
 
 class Config(object):
     NAME = 'default'
-    KAFKA_URI = "localhost:9092"
+    KAFKA_URI = "kafka:29092"
     TOPIC_ORDER = "PR13_Potential-Evapotranspiration_order_topic"
     TOPIC_SERVICE = "processor_service_topic"
     CONSUMER_GROUP = "geonode"
