@@ -26,6 +26,8 @@ import datetime as dt
 import re
 import math
 import calendar
+import logging
+import sys
 
 import numpy as np
 import pysftp
@@ -429,6 +431,18 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
 @click.command()
 @click.argument("json_data")
 def run(json_data):
+
+    # Setup logging to file
+    log_file = Path(f"/data/logs/docker_PR13_Potential-Evapotranspiration_logs/Potential_Evapotranspiration_{dt.datetime.now():%Y%m%d%H%M%S}.log")
+    logging.basicConfig(filename=log_file,
+                        filemode='a',
+                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                        datefmt='%H:%M:%S',
+                        level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    sys.stderr.write = logger.error
+    sys.stdout.write = logger.info
+
     inputs = interface.Inputs().loads(json_data)
     aoi_name = inputs["aoi_name"]
     date = inputs["date"]
