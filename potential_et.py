@@ -23,18 +23,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from dateutil import rrule
 from pathlib import Path
 import datetime as dt
-import re
 import math
 import calendar
 import logging
 import sys
 
 import numpy as np
-import pysftp
 import rasterio
 from rasterio.warp import reproject, Resampling
 import xarray as xr
-import click
 
 from pyTSEB.energy_combination_ET import penman_monteith
 import pyTSEB.net_radiation as rad
@@ -355,6 +352,7 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
                                         meteo_variables,
                                         date,
                                         ndvi_file)
+
         ta = ta + meteo_maps["tavg"]
         wind = wind + meteo_maps["wsavg"]
         vapour = vapour + meteo_maps["vpavg"]
@@ -406,8 +404,6 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
     return str(out_file)
 
 
-@click.command()
-@click.argument("json_data")
 def run(json_data):
 
     # Setup logging to file
@@ -427,11 +423,7 @@ def run(json_data):
     spatial_res = inputs["spatial_res"]
     temporal_res = inputs["temporal_res"]
 
-    output_path = main(aoi_name, date, spatial_res="s2", temporal_res="dekadal")
+    output_path = main(aoi_name, date, spatial_res=spatial_res, temporal_res=temporal_res)
 
     out = interface.Outputs().dumps({"output_path": output_path})
     return out
-
-
-if __name__ == "__main__":
-    run(standalone_mode=False)

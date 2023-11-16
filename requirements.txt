@@ -1,10 +1,9 @@
-click
+confluent-kafka==2.1.1
 marshmallow
 webargs
 numpy
 rasterio
 xarray
 rioxarray
-pysftp
 git+http://github.com/hectornieto/pyPro4Sail.git
 git+https://github.com/hectornieto/pyTSEB.git

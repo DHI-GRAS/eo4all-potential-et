@@ -13,7 +13,8 @@ COPY requirements.txt .
 
 RUN pip install -U pip && pip install -r requirements.txt
 
+COPY kafka /app/kafka
 COPY *.py /app/
 COPY *.csv /app/
 
-ENTRYPOINT ["python", "-u", "potential_et.py"]
+ENTRYPOINT ["python", "-u", "main.py"]

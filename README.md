@@ -5,4 +5,4 @@
      docker build . -t eo4all-potential-et
 
 ## Running Docker image
-    docker run --rm -it eo4all-potential-et '{"aoi_name": "T49MFN", "date":"2022-02-01", "ftp_url":"URL", "ftp_port": "PORT", "ftp_username": "USERNAME", "ftp_pass": "PASSWORD"}'
+    docker run --network=adb_geonode_network -v /home/processing_hd1:/data eo4all-potential-et
