@@ -1,1 +1,1 @@
-docker run --network=adb_geonode_network -v /home/processing_hd1:/data potential_evapotranspiration '{"aoi_name": "T48MYT", "date": "2022-08-01"}'
+docker run --rm --network=adb_geonode_network -v /home/processing_hd1:/data eo4all-potential-et
