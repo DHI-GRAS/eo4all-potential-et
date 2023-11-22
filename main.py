@@ -59,7 +59,7 @@ def process_message(message: Message):
                                       "spatial_res": "s2",
                                       "temporal_res": "dekadal"})
             out_file_path = potential_et.run(json_string)
-            out_file_paths = out_file_paths.append(out_file_path)
+            out_file_paths.append(out_file_path)
 
     # Update parameters
     message.outputs = out_file_paths

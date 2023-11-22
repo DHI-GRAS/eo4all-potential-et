@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from dateutil import rrule
 from pathlib import Path
 import datetime as dt
+import click
 import math
 import calendar
 import logging
@@ -427,3 +428,14 @@ def run(json_data):
 
     out = interface.Outputs().dumps({"output_path": output_path})
     return out
+
+
+@click.command()
+@click.argument("json_data")
+def cli_main(json_data):
+    run(json_data)
+
+
+
+if __name__ == "__main__":
+    cli_main()
