@@ -48,9 +48,7 @@ lc_parameters = ["veg_height", "leaf_type", "veg_fractional_cover", "min_stomata
                  "veg_inclination_distribution", "width_to_height_ratio",
                  "igbp_classification"]
 
-meteo_variables = ["2m-temperature", "2m-dewpoint-temperature", "surface-pressure",
-                   "surface-solar-radiation-downward", "10m-u-component-of-wind",
-                   "10m-v-component-of-wind"]
+meteo_variables = ["tmax", "dmax", "spavg", "ssrd", "wsavg"]
 
 scale_factor = 10000
 output_scale_factor = 100
@@ -239,58 +237,46 @@ def calc_vapour_pressure(td):
     return e
 
 
-def daily_meteo_params(meteo_path, variables, start_date, end_date, template_file):
+def daily_meteo_params(path, variables, date, template_file):
 
     meteo_params = {}
-    wind = {}
+    with rasterio.open(template_file) as template:
+        template_transform = template.transform
+        template_crs = template.crs
+        template_shape = template.read(1).shape
+
     # Extract meteorological variables and convert to right units
     for variable in variables:
-        variable_file = list(meteo_path.glob(f"*{variable}*_{start_date:%Y}_*"))[0]
-        var_ds = xr.open_dataset(variable_file)
-        var_ds.rio.write_crs("epsg:4326", inplace=True)
-        var_data = var_ds.sel(time=slice(start_date, end_date))
-        if variable == "2m-temperature":
-            t_max = var_data.t2m.max("time")
-            t_min = var_data.t2m.min("time")
-            var_data = 0.5 * (t_max + t_min)
-        elif variable == "2m-dewpoint-temperature":
-            t_max = var_data.d2m.max("time")
-            t_min = var_data.d2m.min("time")
-            var_data = 0.5 * (t_max + t_min)
+        var_path = get_files(path, f"*_{variable}_*_{date:%Y%m%d}_*")[0]
+        var_data = rasterio.open(var_path).read(1)
+        if variable == "tmax":
+            # Need to also read tmin to calculate the average and convert to K
+            t_min = rasterio.open(get_files(path, f"*_tmin_*_{date:%Y%m%d}_*")[0]).read(1)
+            var_data = 0.5 * (var_data + t_min) + 273.15
+            variable = "tavg"
+        elif variable == "dmax":
+            # Need to also read dmin to calculate the average and convert to vapour pressure
+            d_min = rasterio.open(get_files(path, f"*_dmin_*_{date:%Y%m%d}_*")[0]).read(1)
+            var_data = 0.5 * (var_data + d_min) + 273.15
             var_data = calc_vapour_pressure(var_data)
-            variable = "vapour-pressure"
-        elif variable == "surface-pressure":
-            # Convert pressure from pascals to mb
-            var_data = var_data.sp.mean("time")/100.0
-        elif variable == "surface-solar-radiation-downward":
-            # Convert to average W m^-2
-            var_data = var_data.ssrd.sum("time") / (end_date - start_date).total_seconds()
-        elif variable == "10m-u-component-of-wind" or variable == "10m-v-component-of-wind":
-            try:
-                wind[variable] = var_data.u10
-            except:
-                wind[variable] = var_data.v10
-            # Calculate absolute wind value
-            if len(wind.keys()) == 2:
-                var_data = (list(wind.values())[0]**2 +
-                            list(wind.values())[1]**2)**0.5
-                var_data = var_data.mean("time")
-                variable = "10m-wind"
-            else:
-                continue
+            variable = "vpavg"
+        elif variable == "ssrd":
+            # Need to convert to average daily W m^-2
+            var_data = var_data / dt.timedelta(hours=24).total_seconds() * 1000000
+        elif variable == "wsavg":
+            # Set minimum windspeed to 1 m/s
+            var_data = np.maximum(var_data, 1.0)
 
         # Reproject to the grid of other inputs
-        with rasterio.open(template_file) as template:
-            data = np.zeros(template.read(1).shape)
+        with rasterio.open(var_path) as var:
+            data = np.zeros(template_shape)
             reproject(var_data,
                       data,
-                      src_transform=var_ds.rio.transform(),
-                      src_crs=var_ds.rio.crs,
-                      dst_transform=template.transform,
-                      dst_crs=template.crs,
+                      src_transform=var.transform,
+                      src_crs=var.crs,
+                      dst_transform=template_transform,
+                      dst_crs=template_crs,
                       resampling=Resampling.bilinear)
-
-        var_ds.close()
 
         meteo_params[variable] = data.astype(np.float32)
 
@@ -351,37 +337,29 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
     lut_file = Path("crop_coefficients_lut.csv")
     lc_maps = create_landcover_based_maps(landcover_file, lut_file, lc_parameters, ndvi_file, lai)
 
-    print("Accessing meteorological data...")
+    print("Accessing daily meteorological data...")
     # Download meteorological data
-    path = Path(f"/data/outputs/Indonesia/{date_start:%Y}/30km/Climate-Indices/")
-    era5_file = get_files(path, f"*_{date_start:%Y}_*")[0]
-
+    path = Path(f"/data/outputs/{aoi_name}/{date_start:%Y%m%d}/9km/Climate-Indices")
     count = 0
     ta = np.zeros(lai.shape)
     wind = np.zeros(lai.shape)
     vapour = np.zeros(lai.shape)
     pressure = np.zeros(lai.shape)
     irradiance = np.zeros(lai.shape)
-    print("Calculating daily meteo values...")
     for date in rrule.rrule(rrule.DAILY, dtstart=date_start, until=date_end):
         print(date)
         count = count + 1
 
         # Get daily meteo params
-        # Most of Indonesia is in UTC+7 time zone
-        start_date = dt.datetime(date.year, date.month, date.day, 0, 0, 0)
-        start_date = start_date - dt.timedelta(hours=7)
-        end_date = start_date + dt.timedelta(hours=24)
-        meteo_maps = daily_meteo_params(Path(era5_file).parent,
+        meteo_maps = daily_meteo_params(path,
                                         meteo_variables,
-                                        start_date,
-                                        end_date,
+                                        date,
                                         ndvi_file)
-        ta = ta + meteo_maps["2m-temperature"]
-        wind = wind + meteo_maps["10m-wind"]
-        vapour= vapour + meteo_maps["vapour-pressure"]
-        pressure = pressure + meteo_maps["surface-pressure"]
-        irradiance = irradiance + meteo_maps["surface-solar-radiation-downward"]
+        ta = ta + meteo_maps["tavg"]
+        wind = wind + meteo_maps["wsavg"]
+        vapour = vapour + meteo_maps["vpavg"]
+        pressure = pressure + meteo_maps["spavg"]
+        irradiance = irradiance + meteo_maps["ssrd"]
 
     ta = ta / count
     wind = wind / count
