@@ -28,6 +28,7 @@ import math
 import calendar
 import logging
 import sys
+import os
 
 import numpy as np
 import rasterio
@@ -301,6 +302,13 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
         date_start = date
         date_end = date
 
+    # Create output file name
+    out_folder = Path(f"/data/outputs/{aoi_name}/{date_start:%Y%m%d}/10m/Potential-Evapotranspiration")
+    out_file = out_folder / f"Potential-Evapotranspiration_ETp_S2-10m_{aoi_name}_{date_start:%Y%m%d}_{date_end:%Y%m%d}_{dt.datetime.now():%Y%m%d%H%M%S}.tif"
+    # Check if output file already exists and return if it does
+    if os.getenv("DEBUG", None) is None and os.path.exists(out_file):
+        return str(out_file)
+
     # Download VI data
     print("Accessing VI data...")
     path = Path(f"/data/outputs/{aoi_name}/{date_start:%Y%m%d}/10m/Vegetation-Indices")
@@ -389,9 +397,7 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
                                   10,
                                   valid_pixels)
 
-    out_folder = Path(f"/data/outputs/{aoi_name}/{date_start:%Y%m%d}/10m/Potential-Evapotranspiration")
     out_folder.mkdir(parents=True, exist_ok=True)
-    out_file = out_folder / f"Potential-Evapotranspiration_ETp_S2-10m_{aoi_name}_{date_start:%Y%m%d}_{date_end:%Y%m%d}_{dt.datetime.now():%Y%m%d%H%M%S}.tif"
     print("Saving output file...")
     with rasterio.open(ndvi_file, "r") as template:
         meta = template.meta

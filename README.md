@@ -20,3 +20,15 @@ docker run --rm --entrypoint python -v ./data:/data docker_pr13_potential-evapot
 ```bash
 docker run --rm --network=adb_geonode_network -v ./data:/data docker_pr13_potential-evapotranspiration_v1
 ```
+
+
+## Useful
+Test the process:
+```bash
+git pull && docker build . -t docker_pr13_potential-evapotranspiration_test_prcess && docker run --rm --network=adb_geonode_network -e DEBUG=True -v /home/processing_hd1:/data docker_pr13_potential-evapotranspiration_test_prcess
+```
+
+Send testing message and check the logs:
+```bash
+make run && sleep 10 && tail -f $(ls -rt /home/processing_hd1/logs/docker_PR13_Potential-Evapotranspiration_logs/Potential_Evapotranspiration_*  | tail -n 1)
+```
