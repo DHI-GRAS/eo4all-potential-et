@@ -6,7 +6,7 @@ class Config(object):
     KAFKA_URI = "kafka:29092"
     TOPIC_ORDER = "PR13_PotentialEvapotranspiration_order_topic"
     TOPIC_SERVICE = "processor_service_topic"
-    CONSUMER_GROUP = "geonode"
+    CONSUMER_GROUP = "geonode" if os.getenv("CONSUMER_GROUP") is None else os.getenv("CONSUMER_GROUP")
 
     @staticmethod
     def from_profile(profile: str):

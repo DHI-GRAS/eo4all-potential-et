@@ -25,7 +25,7 @@ docker run --rm --network=adb_geonode_network -v ./data:/data docker_pr13_potent
 ## Useful
 Test the process:
 ```bash
-git pull && docker build . -t docker_pr13_potential-evapotranspiration_test_prcess && docker run --rm --network=adb_geonode_network -e DEBUG=True -v /home/processing_hd1:/data docker_pr13_potential-evapotranspiration_test_prcess
+git pull && docker build . -t docker_pr13_potential-evapotranspiration_test_prcess && docker run --rm --network=adb_geonode_network -e DEBUG=True -e CONSUMER_GROUP=et_test_group_1 -v /home/processing_hd1:/data docker_pr13_potential-evapotranspiration_test_prcess
 ```
 
 Send testing message and check the logs:
