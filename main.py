@@ -1,18 +1,20 @@
 #!/usr/bin/env python
 
+import calendar
 import datetime
-from dateutil import rrule
-import uuid
-from dataclasses import asdict
-from functools import partial
 import json
+import uuid
+
+from dataclasses import asdict
+from dateutil import rrule
+from functools import partial
+
+import potential_et
 
 from kafka.env_configuration import SELECTED_CONFIG
 from kafka.consumer import KafkaConsumerThread
 from kafka.producer import KafkaProducer
 from kafka.models import Message, custom_asdict_factory
-
-import potential_et
 
 
 def register_consumer(name, topic, broker_address, handle_json_message_data=True,
@@ -51,7 +53,9 @@ def process_message(message: Message):
     for tile in message.input_tiles:
 
         start_date = datetime.datetime.strptime(message.processing_start_date, "%Y%m%d")
+        start_date = start_date.replace(day=1)
         end_date = datetime.datetime.strptime(message.processing_end_date, "%Y%m%d")
+        end_date = end_date.replace(day=calendar.monthrange(end_date.year, end_date.month)[1])
 
         for date in rrule.rrule(rrule.DAILY, dtstart=start_date, until=end_date, interval=10):
             json_string = json.dumps({"aoi_name": tile,
