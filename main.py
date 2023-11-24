@@ -50,8 +50,8 @@ def process_message(message: Message):
     out_file_paths = []
     for tile in message.input_tiles:
 
-        start_date = datetime.datetime.strptime(message.processing_stard_date, "%Y%m%d")
-        end_date = datetime.datetime.strptime(message.processing_stard_date, "%Y%m%d")
+        start_date = datetime.datetime.strptime(message.processing_start_date, "%Y%m%d")
+        end_date = datetime.datetime.strptime(message.processing_end_date, "%Y%m%d")
 
         for date in rrule.rrule(rrule.DAILY, dtstart=start_date, until=end_date, interval=10):
             json_string = json.dumps({"aoi_name": tile,
