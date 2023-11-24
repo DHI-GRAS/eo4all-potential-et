@@ -54,10 +54,10 @@ def process_message(message: Message):
         end_date = datetime.datetime.strptime(message.processing_end_date, "%Y%m%d")
 
         for date in rrule.rrule(rrule.DAILY, dtstart=start_date, until=end_date, interval=10):
-            json_string = json.dumps({"aoi_name": tile,
+            json_string = {"aoi_name": tile,
                                       "date": date,
                                       "spatial_res": "s2",
-                                      "temporal_res": "dekadal"})
+                                      "temporal_res": "dekadal"}
             out_file_path = potential_et.run(json_string)
             out_file_paths.append(out_file_path)
 
