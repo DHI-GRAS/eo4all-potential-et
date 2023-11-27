@@ -58,6 +58,8 @@ def process_message(message: Message):
         end_date = end_date.replace(day=calendar.monthrange(end_date.year, end_date.month)[1])
 
         for date in rrule.rrule(rrule.DAILY, dtstart=start_date, until=end_date, interval=10):
+            if date.day > 21:
+                continue
             json_string = json.dumps({"aoi_name": tile,
                                       "date": date.strftime("%Y-%m-%d"),
                                       "spatial_res": "s2",
