@@ -303,6 +303,8 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
         date_start = date
         date_end = date
 
+    print(f"Running for aoi {aoi_name} date start {date_start:%Y%m%d} and date end {date_end:%Y%m%d}")
+
     # Create output file name
     out_folder = Path(f"/data/outputs/{aoi_name}/{date_start:%Y%m%d}/10m/Potential-Evapotranspiration")
     out_file = out_folder / f"Potential-Evapotranspiration_ETp_S2-10m_{aoi_name}_{date_start:%Y%m%d}_{date_end:%Y%m%d}_{dt.datetime.now():%Y%m%d%H%M%S}.tif"
@@ -310,7 +312,10 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
     existing_files = glob(str(out_file_existence_check))
     # Check if output file already exists and return if it does
     if os.getenv("DEBUG", None) is None and existing_files:
+        print(f"File {str(existing_files[0])} exists. Skipping calculation...")
         return str(existing_files[0])
+
+    print(f"File {str(out_file)} does not exist. Calculating...")
 
     # Download VI data
     print("Accessing VI data...")
