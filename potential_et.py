@@ -308,8 +308,8 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
     out_file = out_folder / f"Potential-Evapotranspiration_ETp_S2-10m_{aoi_name}_{date_start:%Y%m%d}_{date_end:%Y%m%d}_{dt.datetime.now():%Y%m%d%H%M%S}.tif"
     out_file_existence_check = out_folder / f"Potential-Evapotranspiration_ETp_S2-10m_{aoi_name}_{date_start:%Y%m%d}_{date_end:%Y%m%d}_*.tif"
     # Check if output file already exists and return if it does
-    if os.getenv("DEBUG", None) is None and glob(out_file_existence_check):
-        return str(glob(out_file_existence_check)[0])
+    if os.getenv("DEBUG", None) is None and glob(str(out_file_existence_check)):
+        return str(glob(str(out_file_existence_check))[0])
 
     # Download VI data
     print("Accessing VI data...")
