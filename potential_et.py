@@ -308,7 +308,6 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
     out_file = out_folder / f"Potential-Evapotranspiration_ETp_S2-10m_{aoi_name}_{date_start:%Y%m%d}_{date_end:%Y%m%d}_{dt.datetime.now():%Y%m%d%H%M%S}.tif"
     out_file_existence_check = out_folder / f"Potential-Evapotranspiration_ETp_S2-10m_{aoi_name}_{date_start:%Y%m%d}_{date_end:%Y%m%d}_*.tif"
     existing_files = glob(str(out_file_existence_check))
-    print(existing_files)
     # Check if output file already exists and return if it does
     if os.getenv("DEBUG", None) is None and existing_files:
         return str(existing_files[0])
