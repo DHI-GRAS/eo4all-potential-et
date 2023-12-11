@@ -35,6 +35,11 @@ import numpy as np
 import rasterio
 from rasterio.warp import reproject, Resampling
 import xarray as xr
+import geopandas as gpd
+import rioxarray as rxr
+from rioxarray.merge import merge_arrays
+from shapely.geometry import mapping
+import gc
 
 from pyTSEB.energy_combination_ET import penman_monteith
 import pyTSEB.net_radiation as rad
@@ -53,6 +58,143 @@ meteo_variables = ["tmax", "dmax", "spavg", "ssrd", "wsavg"]
 scale_factor = 10000
 output_scale_factor = 100
 no_data = -9999
+
+
+def clipping2aoi(cog_files, df_S2_tile, df_S2_buffer_tile, epsg_info):
+
+    # nodata in ESA Worldcover
+    nodata = 0
+
+    if len(cog_files) > 1:
+
+        path2mosaic = []
+        for path in cog_files:
+
+            # Open ESA COG file
+            xds = rxr.open_rasterio(path)
+
+            # Reproject S2 buffered from GCS to ESA Worldcover EPSG
+            df_S2_buffer_tile_rp = df_S2_buffer_tile.to_crs(xds.rio.crs)
+
+            # Clip to aoi
+            xds = xds.rio.clip(df_S2_buffer_tile_rp.geometry.apply(mapping))
+
+            # Add to list
+            path2mosaic.append(xds)
+
+            # Close and delete it
+            xds.close()
+            del xds
+
+        # Merge/Mosaic multiple rasters using merge_arrays method of rioxarray
+        merged_xds = merge_arrays(dataarrays=path2mosaic,
+                                     res=(10, 10), crs=epsg_info,
+                                     nodata=nodata)
+
+    else:
+
+        # Open ESA COG file
+        xds = rxr.open_rasterio(cog_files[0])
+
+        # Reproject S2 buffered from GCS to ESA Worldcover EPSG
+        df_S2_buffer_tile_rp = df_S2_buffer_tile.to_crs(xds.rio.crs)
+
+        # Clip to aoi
+        xds = xds.rio.clip(df_S2_buffer_tile_rp.geometry.apply(mapping))
+
+        # Merge/Mosaic multiple rasters using merge_arrays method of rioxarray
+        merged_xds = merge_arrays(dataarrays=xds,
+                                     res=(10, 10), crs=epsg_info,
+                                     nodata=nodata)
+
+        # Close and delete it
+        xds.close()
+        del xds
+
+    # Last step: Clip merged raster to S2 tile without buffer
+
+    # Reproject S2 buffered from GCS to S2 UTM huse
+    df_S2_tile_rp = df_S2_tile.to_crs(merged_xds.rio.crs)
+
+    # Clip to aoi
+    merged_xds = merged_xds.rio.clip(df_S2_tile_rp.geometry.apply(mapping))
+
+    return merged_xds
+
+
+def esa_worldcover(tile):
+
+    # ancillaries root directory
+    ancillaries_rootpath = r'/data/_ancillaries'
+
+    # output folder
+    output_dir = r'/data/testFolder/ESA_Worldcover'
+
+    # output filepath
+    filepath_out = os.path.join(output_dir, 'esa_worldcover_2021_' + tile + '.tif')
+    if os.path.exists(filepath_out):
+        return filepath_out
+
+    # S2 worldtiles
+    S2_worldtiles_shp = os.path.join(ancillaries_rootpath,
+                                     'S2_worldtiles',
+                                     'S2_worldtiles.shp')
+
+    # S2 worldtiles buffer 500 meters
+    S2_worldtiles_bu500m_geojson = os.path.join(ancillaries_rootpath,
+                                            'S2_worldtiles',
+                                            'S2_worldtiles_buffer-500m.geojson')
+
+    # ESA Worldcover 2021 tiles
+    esa_worldcover_shp = os.path.join(ancillaries_rootpath,
+                                      'ESA-Worldcover_worldtiles',
+                                      'ESA_WorldCover_10m_2021_v200_60deg.shp')
+
+    # S2_worldtiles
+    df_S2 = gpd.read_file(S2_worldtiles_shp)
+
+    # S2_worldtiles buffer 500m
+    df_S2_buffer = gpd.read_file(S2_worldtiles_bu500m_geojson, driver='GeoJSON')
+
+    # ESA Worldcover 2021
+    df_ESA = gpd.read_file(esa_worldcover_shp)
+
+
+    # S2_worldtiles
+    df_S2_tile = df_S2[df_S2['Name'] == tile[1:]] # remove 'T'
+
+    # S2_worldtiles buffer 500m
+    df_S2_buffer_tile = df_S2_buffer[df_S2_buffer['TILE'] == tile]
+
+    # epsg to reproject later
+    epsg_info = df_S2_buffer_tile['EPSG_INFO'].values.tolist()[0]
+
+    # Get the intersection of the two GeoDataFrames
+    intersection = gpd.overlay(df_ESA, df_S2_tile, how='intersection')
+
+    # Get the ESA Worldcover tiles
+    cog_files = intersection['name'].values.tolist()
+
+    # Add path to files
+    for i in range(len(cog_files)):
+        cog_files[i] = os.path.join(ancillaries_rootpath,
+                                        'ESA-Worldcover_worldtiles',
+                                        'COG_files', cog_files[i] + '.tif')
+
+    # Do clipping to buffered S2 tile, GeoTIFF merging and clipping again to S2 tile without buffer
+    merged_xds = clipping2aoi(cog_files, df_S2_tile, df_S2_buffer_tile, epsg_info)
+
+    # Save in GeoTIFF format
+    merged_xds.rio.to_raster(filepath_out)
+
+    # Close and delete it
+    merged_xds.close()
+    del merged_xds
+
+    # Freeing up memory and improving performance
+    collected = gc.collect()
+
+    return filepath_out
 
 
 def calc_lai(evi):
@@ -347,7 +489,7 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
 
     print("Setting landcover parameters...")
     # Get parameters based on crop classification
-    landcover_file = get_files(Path("/data/_ancillaries/ESA-Worldcover/Indonesia/"), "WorldCover_*")[0]
+    landcover_file = esa_worldcover(aoi_name)
     lut_file = Path("crop_coefficients_lut.csv")
     lc_maps = create_landcover_based_maps(landcover_file, lut_file, lc_parameters, ndvi_file, lai)
 

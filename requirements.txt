@@ -6,5 +6,7 @@ numpy
 rasterio
 xarray
 rioxarray
+geopandas
+shapely
 git+http://github.com/hectornieto/pyPro4Sail.git
 git+https://github.com/hectornieto/pyTSEB.git
