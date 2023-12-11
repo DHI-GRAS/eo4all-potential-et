@@ -582,8 +582,7 @@ def run(json_data):
 
     output_path = main(aoi_name, date, spatial_res=spatial_res, temporal_res=temporal_res)
 
-    out = interface.Outputs().dumps({"output_path": output_path})
-    return out
+    return output_path
 
 
 @click.command()
