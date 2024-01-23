@@ -70,10 +70,11 @@ class Message(object):
     input_tiles: List[str] = field(default=None)
     outputs: List[Path] = field(default=None)
     output_styles: List[Path] = field(default=None)
-
+    origin: str = field(default=None)
+    processing_time_estimation_minutes: int = field(default=None)
 
     @staticmethod
-    def from_json(json_dict):
+    def from_dict(json_dict: dict):
         internal_input_folder_path = json_dict.get("internal_input_folder_path")
         internal_output_folder_path = json_dict.get("internal_output_folder_path")
         result_configuration_path = json_dict.get("result_configuration_path")
@@ -108,11 +109,7 @@ class Message(object):
             json_dict.get("is_process_success"),
             json_dict.get("input_tiles"),
             [Path(value) for value in outputs] if outputs is not None else None,
-            [Path(value) for value in output_styles] if output_styles is not None else None
+            [Path(value) for value in output_styles] if output_styles is not None else None,
+            json_dict.get("origin"),
+            json_dict.get("processing_time_estimation_minutes")
         )
-
-
-
-
-
-

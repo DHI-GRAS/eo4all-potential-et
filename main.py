@@ -29,7 +29,7 @@ def register_consumer(name, topic, broker_address, handle_json_message_data=True
 
 
 def consume_message(request_str, producer_topic):
-    message = Message.from_json(request_str)
+    message = Message.from_dict(request_str)
     process_message(message)
 
 
