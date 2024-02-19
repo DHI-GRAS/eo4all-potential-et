@@ -4,6 +4,7 @@ import calendar
 import datetime
 import json
 import uuid
+import logging
 
 from dataclasses import asdict
 from dateutil import rrule
@@ -50,6 +51,7 @@ def process_message(message: Message):
     print(f"message with id {message.message_id} received")
 
     out_file_paths = []
+    all_succeeded = True
     for tile in message.input_tiles:
 
         start_date = datetime.datetime.strptime(message.processing_start_date, "%Y%m%d")
@@ -64,13 +66,20 @@ def process_message(message: Message):
                                       "date": date.strftime("%Y-%m-%d"),
                                       "spatial_res": "s2",
                                       "temporal_res": "dekadal"})
-            out_file_path = potential_et.run(json_string)
+            try:
+                out_file_path = potential_et.run(json_string)
+            except Exception as e:
+                # Flag the process as failed and stop processing the rest of the tiles
+                logging.exception(f"Potential ET process failed. Parameters: {json_string}.")
+                all_succeeded = False
+                break
+
             out_file_paths.append(out_file_path)
 
     # Update parameters
     message.outputs = out_file_paths if out_file_paths else ["Data not available"]
     # message.output_styles=["Add here the list of styles (path) "]
-    message.is_process_success = True
+    message.is_process_success = all_succeeded
 
     # Send the message that the process was performed
     produce_message(message, SELECTED_CONFIG.TOPIC_SERVICE)
