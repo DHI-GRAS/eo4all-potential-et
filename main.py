@@ -68,13 +68,16 @@ def process_message(message: Message):
                                       "temporal_res": "dekadal"})
             try:
                 out_file_path = potential_et.run(json_string)
+                out_file_paths.append(out_file_path)
             except Exception as e:
                 # Flag the process as failed and stop processing the rest of the tiles
                 logging.exception(f"Potential ET process failed. Parameters: {json_string}.")
                 all_succeeded = False
                 break
 
-            out_file_paths.append(out_file_path)
+        if all_succeeded is False:
+            break
+
 
     # Update parameters
     message.outputs = out_file_paths if out_file_paths else ["Data not available"]
