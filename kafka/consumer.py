@@ -1,8 +1,8 @@
 import json
 import logging
-import threading
 import uuid
 
+from concurrent.futures import ThreadPoolExecutor
 from confluent_kafka import Consumer, KafkaError
 
 
@@ -38,13 +38,14 @@ class KafkaConsumerThread:
         :param handle_message_function: the function to handle consumed message
         """
 
-        thread = threading.Thread(target=self.run_thread, args=(handle_message_function,))
-        thread.daemon = True
+        number_of_consumers=1
+        with ThreadPoolExecutor(max_workers=number_of_consumers) as executor:
 
-        if not self.run_as_separate_thread:
-            thread.daemon = False
-
-        thread.start()
+            for i in range(number_of_consumers):
+                #feel free to setup the name you want
+                complete_name = "consumer" + "_" + str(i)
+                logging.info(f"start {complete_name} with consumer group {str(self.consumer_group)}")
+                executor.submit(self.run_thread, handle_message_function)
 
     def run_thread(self, handle_message_value_function):
         """
