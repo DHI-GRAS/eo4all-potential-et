@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import uuid
 
 from concurrent.futures import ThreadPoolExecutor
@@ -38,7 +39,7 @@ class KafkaConsumerThread:
         :param handle_message_function: the function to handle consumed message
         """
 
-        number_of_consumers=1
+        number_of_consumers = int(os.getenv('NUMBER_OF_CONSUMERS', 1))
         with ThreadPoolExecutor(max_workers=number_of_consumers) as executor:
 
             for i in range(number_of_consumers):
@@ -57,6 +58,9 @@ class KafkaConsumerThread:
             'bootstrap.servers': self.broker_address,
             'auto.offset.reset': 'latest',
             'group.id': self.consumer_group,
+            'max.poll.interval.ms': 7200000,
+            # Note: If the idle timeout (connection.max.idle) is less than either poll interval then you might expect to see some dropped network connections. The connection max idle cannot be lower than max poll
+            'connections.max.idle.ms': 7200000
         })
 
         consumer.subscribe([self.topic])
