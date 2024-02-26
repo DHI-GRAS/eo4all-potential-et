@@ -567,7 +567,7 @@ def run(json_data):
     log_file = Path(f"/data/logs/docker_PR13_Potential-Evapotranspiration_logs/Potential_Evapotranspiration_{dt.datetime.now():%Y%m%d%H%M%S}.log")
     logging.basicConfig(filename=log_file,
                         filemode='a',
-                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s Thread:%(threadName)s - %(message)s',
                         datefmt='%H:%M:%S',
                         level=logging.INFO)
     logger = logging.getLogger(__name__)

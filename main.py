@@ -19,7 +19,7 @@ from kafka.models import Message, custom_asdict_factory
 
 
 def register_consumer(name, topic, broker_address, handle_json_message_data=True,
-                      run_as_separate_thread=False, consumer_group=str(uuid.uuid1())[0:10]):
+                      run_as_separate_thread=False, consumer_group="potential-evapotranspiration"):
     consumer = KafkaConsumerThread(topic, broker_address, handle_json_message_data,
                                    run_as_separate_thread, consumer_group=consumer_group)
 
