@@ -72,6 +72,8 @@ class Message(object):
     output_styles: List[Path] = field(default=None)
     origin: str = field(default=None)
     processing_time_estimation_minutes: int = field(default=None)
+    username: str = field(default=None)
+    is_user_staff_or_admin: bool = field(default=False)
 
     @staticmethod
     def from_dict(json_dict: dict):
@@ -111,5 +113,7 @@ class Message(object):
             [Path(value) for value in outputs] if outputs is not None else None,
             [Path(value) for value in output_styles] if output_styles is not None else None,
             json_dict.get("origin"),
-            json_dict.get("processing_time_estimation_minutes")
+            json_dict.get("processing_time_estimation_minutes"),
+            json_dict.get("username"),
+            json_dict.get("is_user_staff_or_admin")
         )
