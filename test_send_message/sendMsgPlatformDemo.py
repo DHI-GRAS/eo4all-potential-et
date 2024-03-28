@@ -50,7 +50,11 @@ def main():
             "T48MZT"
         ],
         "outputs": None,
-        "output_styles": None
+        "output_styles": None,
+        "origin": None,
+        "processing_time_estimation_minutes": None,
+        "username": None,
+        "is_user_staff_or_admin": None,
     }
 
     dict_message=message
