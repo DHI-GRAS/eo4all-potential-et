@@ -344,7 +344,7 @@ def create_landcover_based_maps(landcover_file, lut_file, parameters, template_f
     data = {}
     for param in parameters:
         if param not in lut.keys():
-            print("Parameter %s is not in the look-up-table %s! Skipping!" % (param, lut_file))
+            logging.info("Parameter %s is not in the look-up-table %s! Skipping!" % (param, lut_file))
             continue
         temp = np.zeros(landcover.shape, dtype=np.float32) + np.NaN
         if param == "veg_height":
@@ -446,7 +446,7 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
         date_start = date
         date_end = date
 
-    print(f"Running for aoi {aoi_name} date start {date_start:%Y%m%d} and date end {date_end:%Y%m%d}")
+    logging.info(f"Running for aoi {aoi_name} date start {date_start:%Y%m%d} and date end {date_end:%Y%m%d}")
 
     # Create output file name
     out_folder = Path(f"/data/outputs/{aoi_name}/{date_start:%Y%m%d}/10m/Potential-Evapotranspiration")
@@ -455,13 +455,13 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
     existing_files = glob(str(out_file_existence_check))
     # Check if output file already exists and return if it does
     if os.getenv("DEBUG", None) is None and existing_files:
-        print(f"File {str(existing_files[0])} exists. Skipping calculation...")
+        logging.info(f"File {str(existing_files[0])} exists. Skipping calculation...")
         return str(existing_files[0])
 
-    print(f"File {str(out_file)} does not exist. Calculating...")
+    logging.info(f"File {str(out_file)} does not exist. Calculating...")
 
     # Download VI data
-    print("Accessing VI data...")
+    logging.info("Accessing VI data...")
     path = Path(f"/data/outputs/{aoi_name}/{date_start:%Y%m%d}/10m/Vegetation-Indices")
     ndvi_file = get_files(path, "*_NDVI_*")[0]
     evi_file = get_files(path, "*_EVI_*")[0]
@@ -471,7 +471,7 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
     refl_b11_file = get_files(path, "*_B11_*")[0]
     refl_b12_file = get_files(path, "*_B12_*")[0]
 
-    print("Calculating biophysical parameters...")
+    logging.info("Calculating biophysical parameters...")
     # Calculate LAI, emissivity and albedo
     with rasterio.open(evi_file) as evi:
         lai = calc_lai(evi.read(1).astype(np.float32) / scale_factor_VI)
@@ -488,13 +488,13 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
                              refl_b11.read(1).astype(np.float32) / scale_factor,
                              refl_b12.read(1).astype(np.float32) / scale_factor)
 
-    print("Setting landcover parameters...")
+    logging.info("Setting landcover parameters...")
     # Get parameters based on crop classification
     landcover_file = esa_worldcover(aoi_name)
     lut_file = Path("crop_coefficients_lut.csv")
     lc_maps = create_landcover_based_maps(landcover_file, lut_file, lc_parameters, ndvi_file, lai)
 
-    print("Accessing daily meteorological data...")
+    logging.info("Accessing daily meteorological data...")
     # Download meteorological data
     path = Path(f"/data/outputs/{aoi_name}/{date_start:%Y%m%d}/9km/Climate-Indices")
     count = 0
@@ -504,7 +504,7 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
     pressure = np.zeros(lai.shape)
     irradiance = np.zeros(lai.shape)
     for date in rrule.rrule(rrule.DAILY, dtstart=date_start, until=date_end):
-        print(date)
+        logging.info(date)
         count = count + 1
 
         # Get daily meteo params
@@ -528,7 +528,7 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
     # Calculate potential ET
     valid_pixels = np.logical_and(valid_pixels,
                                   np.isfinite(lc_maps["veg_height"]))
-    print("Calculating potential ET...")
+    logging.info("Calculating potential ET...")
     et_p = calculate_potential_et(lai,
                                   emis,
                                   albedo,
@@ -549,7 +549,7 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
                                   valid_pixels)
 
     out_folder.mkdir(parents=True, exist_ok=True)
-    print("Saving output file...")
+    logging.info("Saving output file...")
     with rasterio.open(ndvi_file, "r") as template:
         meta = template.meta
         meta.update({"driver": "COG"})
@@ -565,15 +565,26 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
 def run(json_data):
 
     # Setup logging to file
-    log_file = Path(f"/data/logs/docker_PR13_Potential-Evapotranspiration_logs/Potential_Evapotranspiration_{dt.datetime.now():%Y%m%d%H%M%S}.log")
-    logging.basicConfig(filename=log_file,
-                        filemode='a',
-                        format='%(asctime)s,%(msecs)d %(name)s %(levelname)s Thread:%(threadName)s - %(message)s',
-                        datefmt='%H:%M:%S',
-                        level=logging.INFO)
-    logger = logging.getLogger(__name__)
-    sys.stderr.write = logger.error
-    sys.stdout.write = logger.info
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    log_formatter = logging.Formatter(
+        "%(asctime)s,%(msecs)d %(name)s %(levelname)s Thread:%(threadName)s - %(message)s",
+        '%H:%M:%S'
+    )
+
+    # Remove old handlers so we use one log file per process
+    for hdlr in logger.handlers[:]:
+        logger.removeHandler(hdlr)
+
+    file_handler = logging.FileHandler(
+        f"/data/logs/docker_PR13_Potential-Evapotranspiration_logs/Potential_Evapotranspiration_{dt.datetime.now():%Y%m%d%H%M%S}.log"
+    )
+    file_handler.setFormatter(log_formatter)
+    logger.addHandler(file_handler)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(log_formatter)
+    logger.addHandler(console_handler)
 
     inputs = interface.Inputs().loads(json_data)
     aoi_name = inputs["aoi_name"]

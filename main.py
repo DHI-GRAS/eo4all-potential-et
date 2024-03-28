@@ -98,4 +98,5 @@ def main():
                       consumer_group=SELECTED_CONFIG.CONSUMER_GROUP)
 
 
-main()
+if __name__ == "__main__":
+    main()
