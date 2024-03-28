@@ -8,12 +8,12 @@ from kafka.producer import KafkaProducer
 from kafka.models import Message, custom_asdict_factory
 from kafka.utils import get_resources_path
 
+
 def main():
     topic = SELECTED_CONFIG.TOPIC_ORDER
 
     # create a producer using kafka uri
     producer = KafkaProducer(broker_address=SELECTED_CONFIG.KAFKA_URI)
-
 
     # generate message_id unique for every send of the same message
     message = Message(message_id=str(uuid.uuid4()))
@@ -37,33 +37,30 @@ def main():
         "processing_end_date": "20220831",
         "result_configuration_path": "/mnt/volumes/adb_workspace/folder_823d36be-55d5-435e-a2b4-43d94d8107b9_Potential-Evapotranspiration_mapping/output/result_configuration.json",
         "message": None,
-        "extended_perms": "{\"users\": {\"dippolito\": [\"delete_resourcebase\", \"change_resourcebase_permissions\", \"publish_resourcebase\", \"change_resourcebase\", \"change_resourcebase_metadata\", \"download_resourcebase\", \"view_resourcebase\"]}, \"groups\": {\"contributors\": [\"download_resourcebase\", \"view_resourcebase\"]}}",
-        "compact_perms": "{\"users\": [{\"id\": 1001, \"permissions\": \"manage\"}], \"groups\": [{\"id\": 1, \"permissions\": \"download\"}], \"organizations\": []}",
+        "extended_perms": '{"users": {"dippolito": ["delete_resourcebase", "change_resourcebase_permissions", "publish_resourcebase", "change_resourcebase", "change_resourcebase_metadata", "download_resourcebase", "view_resourcebase"]}, "groups": {"contributors": ["download_resourcebase", "view_resourcebase"]}}',
+        "compact_perms": '{"users": [{"id": 1001, "permissions": "manage"}], "groups": [{"id": 1, "permissions": "download"}], "organizations": []}',
         "create_map_with_layers": False,
         "optional_fields": {
             "folder_name": "folder_823d36be-55d5-435e-a2b4-43d94d8107b9_Potential-Evapotranspiration_mapping"
         },
         "map_creation_info": None,
         "is_process_success": True,
-        "input_tiles": [
-            "T48MYT",
-            "T48MZT"
-        ],
+        "input_tiles": ["T48MYT", "T48MZT"],
         "outputs": None,
         "output_styles": None,
-        "origin": None,
-        "processing_time_estimation_minutes": None,
-        "username": None,
-        "is_user_staff_or_admin": None,
+        "origin": "Potential-Evapotranspiration",
+        "processing_tiestimation_minutes": 30,
+        "username": "dippolito",
+        "is_user_staff_or_admin": True,
     }
 
-    dict_message=message
+    dict_message = message
 
-
-    print('Platform emulator to send a request to a process')
+    print("Platform emulator to send a request to a process")
     print(f"Sending message to topic: {topic}. Message: {str(dict_message)}")
 
     # publish message
     producer.publish_message(topic=topic, message=dict_message)
+
 
 main()
