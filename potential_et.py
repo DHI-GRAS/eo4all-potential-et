@@ -56,6 +56,7 @@ lc_parameters = ["veg_height", "leaf_type", "veg_fractional_cover", "min_stomata
 meteo_variables = ["tmax", "dmax", "spavg", "ssrd", "wsavg"]
 
 scale_factor = 10000
+scale_factor_VI = 1000
 output_scale_factor = 100
 no_data = -9999
 
@@ -473,10 +474,10 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
     print("Calculating biophysical parameters...")
     # Calculate LAI, emissivity and albedo
     with rasterio.open(evi_file) as evi:
-        lai = calc_lai(evi.read(1).astype(np.float32) / scale_factor)
+        lai = calc_lai(evi.read(1).astype(np.float32) / scale_factor_VI)
         valid_pixels = evi.read(1) != no_data
     with rasterio.open(ndvi_file) as ndvi, rasterio.open(refl_b4_file) as red:
-        emis = calc_emis(ndvi.read(1).astype(np.float32) / scale_factor,
+        emis = calc_emis(ndvi.read(1).astype(np.float32) / scale_factor_VI,
                          red.read(1).astype(np.float32) / scale_factor)
     with (rasterio.open(refl_b2_file) as refl_b2, rasterio.open(refl_b4_file) as refl_b4,
           rasterio.open(refl_b8_file) as refl_b8, rasterio.open(refl_b11_file) as refl_b11,
