@@ -463,6 +463,12 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
     # Download VI data
     logging.info("Accessing VI data...")
     path = Path(f"/data/outputs/{aoi_name}/{date_start:%Y%m%d}/10m/Vegetation-Indices")
+    if not os.path.exists(path):
+        logging.info(
+            f"Vegetation indices dir for {aoi_name} on {date_start:%Y%m%d} does not exist at {path}. Skipping calculation..."
+        )
+        return
+
     ndvi_file = get_files(path, "*_NDVI_*")[0]
     evi_file = get_files(path, "*_EVI_*")[0]
     refl_b2_file = get_files(path, "*_B02_*")[0]
@@ -497,6 +503,11 @@ def main(aoi_name, date, spatial_res="s2", temporal_res="dekadal"):
     logging.info("Accessing daily meteorological data...")
     # Download meteorological data
     path = Path(f"/data/outputs/{aoi_name}/{date_start:%Y%m%d}/9km/Climate-Indices")
+    if not os.path.exists(path):
+        logging.info(
+            f"Climate indices dir for {aoi_name} on {date_start:%Y%m%d} does not exist at {path}. Skipping calculation..."
+        )
+        return
     count = 0
     ta = np.zeros(lai.shape)
     wind = np.zeros(lai.shape)
