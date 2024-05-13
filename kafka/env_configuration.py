@@ -3,7 +3,7 @@ import os
 
 class Config(object):
     NAME = 'default'
-    KAFKA_URI = "kafka:29092"
+    KAFKA_URI = os.getenv("KAFKA_URI", "kafka1:29092,kafka2:29093")
     TOPIC_ORDER = "PR13_PotentialEvapotranspiration_order_topic"
     TOPIC_SERVICE = "processor_service_topic"
     CONSUMER_GROUP = "geonode" if os.getenv("CONSUMER_GROUP") is None else os.getenv("CONSUMER_GROUP")
@@ -29,7 +29,7 @@ class LocalConfig(Config):
 
 class ProductionConfig(Config):
     NAME = 'prod'
-    KAFKA_URI = "kafka:29092"
+    KAFKA_URI = os.getenv("KAFKA_URI", "kafka1:29092,kafka2:29093")
     TOPIC_TEST_NAME = "topic_test"
     CONSUMER_GROUP = "geonode"
 
